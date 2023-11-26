@@ -1,0 +1,30 @@
+[package]
+name = "hosts_to"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.60"
+
+authors = ["Yuki Yamaura <ymruki@gmail.com>"]
+license = "BSL-1.0"
+description = "zero-copy /etc/hosts parser"
+homepage = "https://github.com/yamaura/hosts_to"
+repository = "https://github.com/yamaura/hosts_to"
+readme = "README.md"
+keywords = ["hosts"]
+categories = []
+include = ["src/**/*.rs", "README.md", "LICENSE"]
+
+[package.metadata.release]
+push = false
+tag-name = "{{prefix}}{{version}}"
+pre-release-commit-message = "Bump version to {{version}}"
+tag-message = "{{tag_name}}"
+
+[features]
+default = []
+trust-dns-proto = ["dep:trust-dns-proto"]
+
+[dependencies]
+thiserror = "1"
+trust-dns-proto = { version = "0.23.2", default-features = false, optional = true }
+
