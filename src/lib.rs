@@ -1,5 +1,6 @@
 //! # hosts_to
-//!
+//! A library for parsing hosts file entries.
+//! This library provides a way to parse hosts file entries into a format that can be used
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -11,6 +12,9 @@ use std::net::{AddrParseError, IpAddr};
 #[cfg(feature = "trust-dns-proto")]
 pub use ::trust_dns_proto;
 
+/// Error type for parsing hosts file entries.
+/// This sturct corresponds to a line in the hosts file.
+/// See `HostEntry` for a version that owns its data.
 #[derive(Error, Debug, Clone)]
 #[error("{0}")]
 pub enum ParseHostEntryError {
@@ -20,6 +24,7 @@ pub enum ParseHostEntryError {
     AddrParseError(#[from] AddrParseError),
 }
 
+/// A reference to a single line of a hosts file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostEntryRef<'a> {
     pub ipaddr: IpAddr,
@@ -27,6 +32,20 @@ pub struct HostEntryRef<'a> {
 }
 
 impl HostEntryRef<'_> {
+    /// Parses a single line of a hosts file.
+    ///
+    /// This function will parse a line of text into a `HostEntryRef`.
+    /// It ignores any comments (starting with '#') and leading whitespace.
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - A string slice representing a single line from a hosts file.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some(HostEntryRef))` if the line contains a valid host entry.
+    /// Returns `Ok(None)` if the line is empty or only contains a comment.
+    /// Returns `Err(ParseHostEntryError)` if the line contains an invalid format.
     pub fn parse_line_str(line: &str) -> Result<Option<HostEntryRef<'_>>, ParseHostEntryError> {
         use ParseHostEntryError::*;
         let s = line.trim_start();
@@ -48,6 +67,19 @@ impl HostEntryRef<'_> {
         }
     }
 
+    /// Parses a string into a vector of `HostEntryRef`.
+    ///
+    /// This function processes each line of the input string as a hosts file entry,
+    /// using `parse_line_str` for each line.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - A string slice representing the contents of a hosts file.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Vec<HostEntryRef>)` containing all parsed host entries.
+    /// Returns `Err(ParseHostEntryError)` if any line contains an invalid format.
     pub fn parse_str_to_vec(s: &str) -> Result<Vec<HostEntryRef<'_>>, ParseHostEntryError> {
         let mut result = vec![];
         for line in s.lines() {
@@ -59,6 +91,10 @@ impl HostEntryRef<'_> {
     }
 }
 
+/// A single entry in a hosts file.
+/// This sturct corresponds to a line in the hosts file.
+/// This struct owns its data.
+/// See `HostEntryRef` for a non-owning version.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostEntry {
     pub ipaddr: IpAddr,
@@ -66,6 +102,15 @@ pub struct HostEntry {
 }
 
 impl std::convert::From<HostEntryRef<'_>> for HostEntry {
+    /// Converts `HostEntryRef` into `HostEntry`.
+    ///
+    /// This conversion takes a `HostEntryRef` and creates a new `HostEntry`
+    /// instance with owned data. The IP address is copied, and all hostnames
+    /// are converted to owned `String`s.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `HostEntry` instance with data owned by the struct.
     fn from(h: HostEntryRef<'_>) -> Self {
         HostEntry {
             ipaddr: h.ipaddr,
@@ -81,6 +126,15 @@ impl std::convert::From<HostEntryRef<'_>> for HostEntry {
 impl std::str::FromStr for HostEntry {
     type Err = ParseHostEntryError;
 
+    /// Parses a string slice into a `HostEntry`.
+    ///
+    /// Attempts to parse a single line of a hosts file as a `HostEntry`.
+    /// This will handle any leading whitespace and ignore comments.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(HostEntry)` if the line is successfully parsed.
+    /// Returns `Err(ParseHostEntryError)` if the line is invalid or empty.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HostEntryRef::parse_line_str(s)?
             .ok_or(ParseHostEntryError::EmptyLine)?
@@ -89,6 +143,19 @@ impl std::str::FromStr for HostEntry {
 }
 
 impl HostEntry {
+    /// Parses a string into a vector of `HostEntry`.
+    ///
+    /// This function processes each line of the input string as a hosts file entry,
+    /// parsing them into `HostEntry` objects.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - A string slice representing the contents of a hosts file.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Vec<HostEntry>)` containing all parsed host entries.
+    /// Returns `Err(ParseHostEntryError)` if any line contains an invalid format.
     pub fn parse_str_to_vec(s: &str) -> Result<Vec<Self>, ParseHostEntryError> {
         Ok(HostEntryRef::parse_str_to_vec(s)?
             .into_iter()
@@ -104,12 +171,14 @@ pub struct Record {
     pub name: String,
 }
 
+/// Iterator over `Record`s in a `HostEntry`.
 pub struct RecordIter(IpAddr, std::vec::IntoIter<String>);
 
 impl std::iter::IntoIterator for HostEntry {
     type Item = Record;
     type IntoIter = RecordIter;
 
+    /// Creates an iterator over `Record`s in a `HostEntry`.
     fn into_iter(self) -> Self::IntoIter {
         RecordIter(self.ipaddr, self.hostnames.into_iter())
     }
