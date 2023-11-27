@@ -3,13 +3,14 @@
 //! This library provides a way to parse hosts file entries into a format that can be used
 
 ///////////////////////////////////////////////////////////////////////////////
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 use thiserror::Error;
 
 use std::net::{AddrParseError, IpAddr};
 
-/// Re-export of trust-dns-proto
 #[cfg(feature = "trust-dns-proto")]
+#[cfg_attr(docsrs, doc(cfg(feature = "trust-dns-proto")))]
 pub use ::trust_dns_proto;
 
 /// Error type for parsing hosts file entries.
@@ -196,9 +197,11 @@ impl std::iter::Iterator for RecordIter {
 }
 
 #[cfg(feature = "trust-dns-proto")]
+#[cfg_attr(docsrs, doc(cfg(feature = "trust-dns-proto")))]
 impl std::convert::TryInto<trust_dns_proto::rr::resource::Record> for Record {
     type Error = trust_dns_proto::error::ProtoError;
 
+    /// Converts `Record` into `trust_dns_proto::rr::resource::Record`.
     fn try_into(self) -> Result<trust_dns_proto::rr::resource::Record, Self::Error> {
         use trust_dns_proto::rr::rdata::a::A;
         use trust_dns_proto::rr::rdata::aaaa::AAAA;
